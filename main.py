@@ -85,34 +85,41 @@ if __name__ == '__main__':
         df[reading_column_name] = df[reading_column_name].astype(str)
         df[writing_column_name] = df[writing_column_name].astype(str)
 
+        # Функция для проверки наличия макроса
+        def contains_macro(cell_value):
+            return "_MACRO_PLACEHOLDER_" in cell_value
+
         # Обрабатываем строки таблицы
         for index, row in df.iterrows():
-            # Формируем макрос для столбца "Коды"
-            codes_macro = f"""<ac:structured-macro ac:name="requirement" ac:schema-version="1" ac:macro-id="78c83295-93e7-46d1-91c3-996d2b19abd4">
-      <ac:parameter ac:name="type">DEFINITION</ac:parameter>
-      <ac:parameter ac:name="key">{keydoc}-{macro_counter}-w</ac:parameter>
-    </ac:structured-macro><p><ac:structured-macro ac:name="requirement" ac:schema-version="1" ac:macro-id="fa95f2ea-fb6d-42b4-8e45-9136dc50604e">
-      <ac:parameter ac:name="type">DEFINITION</ac:parameter>
-      <ac:parameter ac:name="key">{keydoc}-{macro_counter}-r</ac:parameter>
-    </ac:structured-macro></p>"""
-            # Добавляем макрос в столбец "Коды"
-            df.at[index, codes_column_name] = f"{codes_macro}{str(row[codes_column_name])}"
+            if not contains_macro(row[codes_column_name]):
+                # Формируем макрос для столбца "Коды"
+                codes_macro = f"""<ac:structured-macro ac:name="requirement" ac:schema-version="1" ac:macro-id="78c83295-93e7-46d1-91c3-996d2b19abd4">
+          <ac:parameter ac:name="type">DEFINITION</ac:parameter>
+          <ac:parameter ac:name="key">{keydoc}-{macro_counter}-w</ac:parameter>
+        </ac:structured-macro><p><ac:structured-macro ac:name="requirement" ac:schema-version="1" ac:macro-id="fa95f2ea-fb6d-42b4-8e45-9136dc50604e">
+          <ac:parameter ac:name="type">DEFINITION</ac:parameter>
+          <ac:parameter ac:name="key">{keydoc}-{macro_counter}-r</ac:parameter>
+        </ac:structured-macro></p>"""
+                # Добавляем макрос в столбец "Коды"
+                df.at[index, codes_column_name] = f"{codes_macro}{str(row[codes_column_name])}"
 
-            # Формируем макрос для столбца "Чтение"
-            reading_macro = f"""<ac:structured-macro ac:name="requirement-report" ac:schema-version="1" ac:macro-id="2d61b4d7-2599-40ed-9063-4b1af911776e">
-            <ac:parameter ac:name="columns">links?duplicates=false</ac:parameter>
-            <ac:parameter ac:name="query">key='{keydoc}-{macro_counter}-r'</ac:parameter>
-        </ac:structured-macro>"""
-            # Добавляем макрос в столбец "Чтение"
-            df.at[index, reading_column_name] = f"{reading_macro}{str(row[reading_column_name])}"
-
-            # Формируем макрос для столбца "Запись"
-            writing_macro = f"""<ac:structured-macro ac:name="requirement-report" ac:schema-version="1" ac:macro-id="2d61b4d7-2599-40ed-9063-4b1af911776e">
+            if not contains_macro(row[reading_column_name]):
+                # Формируем макрос для столбца "Чтение"
+                reading_macro = f"""<ac:structured-macro ac:name="requirement-report" ac:schema-version="1" ac:macro-id="2d61b4d7-2599-40ed-9063-4b1af911776e">
                 <ac:parameter ac:name="columns">links?duplicates=false</ac:parameter>
-                <ac:parameter ac:name="query">key='{keydoc}-{macro_counter}-w'</ac:parameter>
+                <ac:parameter ac:name="query">key='{keydoc}-{macro_counter}-r'</ac:parameter>
             </ac:structured-macro>"""
-            # Добавляем макрос в столбец "Запись"
-            df.at[index, writing_column_name] = f"{writing_macro}{str(row[writing_column_name])}"
+                # Добавляем макрос в столбец "Чтение"
+                df.at[index, reading_column_name] = f"{reading_macro}{str(row[reading_column_name])}"
+
+            if not contains_macro(row[writing_column_name]):
+                # Формируем макрос для столбца "Запись"
+                writing_macro = f"""<ac:structured-macro ac:name="requirement-report" ac:schema-version="1" ac:macro-id="2d61b4d7-2599-40ed-9063-4b1af911776e">
+                    <ac:parameter ac:name="columns">links?duplicates=false</ac:parameter>
+                    <ac:parameter ac:name="query">key='{keydoc}-{macro_counter}-w'</ac:parameter>
+                </ac:structured-macro>"""
+                # Добавляем макрос в столбец "Запись"
+                df.at[index, writing_column_name] = f"{writing_macro}{str(row[writing_column_name])}"
 
             macro_counter += 1
 
