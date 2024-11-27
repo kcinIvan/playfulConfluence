@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 
 
 class DocumentModel:
-    def __init__(self, page_id):
+    def __init__(self, page_id, keydoc):
         confluence = connector.get_connect()
 
         # получение информации о странице по id
@@ -19,6 +19,15 @@ class DocumentModel:
 
         # Обработка <ac:structured-macro>
         for i, macro in enumerate(soup.find_all("ac:structured-macro")):
+
+            # Получаем атрибуты макроса
+            macro_name = macro.get("ac:name")
+
+            # Пропускаем макросы с определённым macro-id или name
+            if macro_name == "ui-tab" or macro_name == "ui-tabs":
+                continue  # Пропускаем этот макрос и не заменяем его на маркер
+
+            # Если макрос не исключён, заменяем его на маркер
             placeholder = f"__MACRO_PLACEHOLDER_{i}__"
             macro_replacements[placeholder] = str(macro)
             macro.replace_with(placeholder)
@@ -37,7 +46,7 @@ class DocumentModel:
             raise Exception("No tables found on the webpage.")
 
         self.id = page_id  # id страницы
-        self.keyDoc = "DD-MPA-919"  # ключ документа
+        self.keyDoc = keydoc  # ключ документа
         self.title = page["title"] # заголовок страницы
         self.typeDoc = "non"  # тип документа
         self.numberDoc = 0  # порядковый номер для типа документа
@@ -66,5 +75,5 @@ class DocumentModel:
         confluence.update_page(self.id, self.title, updated_html_content, parent_id=None, type='page',
                                representation='storage',
                                minor_edit=False, full_width=False)
-        self.__init__(self.id)
-        print('Page has been updated')
+        self.__init__(self.id, self.keyDoc)
+        print(f'Page {self.title} has been updated')
