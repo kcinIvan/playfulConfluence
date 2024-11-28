@@ -3,6 +3,27 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import io
 
+
+# Функция для проверки наличия макроса
+def contains_macro(cell_value):
+    return "_MACRO_PLACEHOLDER_" in cell_value
+
+
+def insert_col(title_col, position, df):
+    if isinstance(title_col, str):
+        column_name = '<ac:structured-macro ac:macro-id="53b5d6fb-9774-4048-bea8-98a3e2889eac" ' \
+                      'ac:name="requirement-property" ac:schema-version="1">' \
+                      '<ac:parameter ac:name="ignore">true</ac:parameter>' \
+                      f'</ac:structured-macro>{title_col}'
+        if position == "last":
+            df.insert(len(df.columns), column_name, "")  # Вставляем столбец на последнюю позицию
+        elif position == "first":
+            df.insert(0, column_name, "")  # Вставляем столбец на первую позицию
+        else:
+            raise Exception(f"Неопределенная позиция для вставки столбца: {position}")
+        return column_name
+
+
 def add_macros_to_tables_dd(obj: DocumentModel.DocumentModel):
     # Инициализация счётчика макросов
     macro_counter = 1
@@ -19,26 +40,27 @@ def add_macros_to_tables_dd(obj: DocumentModel.DocumentModel):
         # Проверяем, содержит ли таблица столбец "Коды"
         codes_column_name = next((col for col in df.columns if "Коды" in str(col)), None)
         if codes_column_name is None:
-            # Пропускаем таблицы без столбца "Коды"
-            continue
+            # Если столбца "Код" нет, проверяем наличие столбца "Атрибут"
+            attributes_column_name = next((col for col in df.columns if "Атрибут" in str(col)), None)
+            if attributes_column_name is not None:
+                codes_column_name = insert_col("Коды", "first", df)
+            else:
+                # Пропускаем таблицы без столбца "Атрибуты"
+                continue
 
         # Проверяем наличие столбца "Чтение" и "Запись"
         reading_column_name = next((col for col in df.columns if "Чтение" in str(col)), None)
         if reading_column_name is None:
-            raise Exception(f"Table with 'Коды' column does not have a corresponding 'Чтение' column.")
+            reading_column_name = insert_col("Чтение", "last", df)
 
         writing_column_name = next((col for col in df.columns if "Запись" in str(col)), None)
         if writing_column_name is None:
-            raise Exception(f"Table with 'Коды' column does not have a corresponding 'Запись' column.")
+            writing_column_name = insert_col("Запись", "last", df)
 
         # Приведение типа столбцов, куда добавляются макросы, к строковому
         df[codes_column_name] = df[codes_column_name].astype(str)
         df[reading_column_name] = df[reading_column_name].astype(str)
         df[writing_column_name] = df[writing_column_name].astype(str)
-
-        # Функция для проверки наличия макроса
-        def contains_macro(cell_value):
-            return "_MACRO_PLACEHOLDER_" in cell_value
 
         # Обрабатываем строки таблицы
         for index, row in df.iterrows():
@@ -109,18 +131,7 @@ def add_macros_to_tables_intg(obj: DocumentModel.DocumentModel):
             # Если столбца "Код" нет, проверяем наличие столбца "Атрибуты"
             attributes_column_name = next((col for col in df.columns if "Атрибут" in str(col)), None)
             if attributes_column_name is not None:
-                df.insert(0, "Код", "")  # Вставляем столбец на первую позицию
-
-                # Обновляем заголовок столбца "Код" на требуемую HTML-конструкцию
-                df.rename(columns={"Код": '<ac:structured-macro ac:macro-id="53b5d6fb-9774-4048-bea8-98a3e2889eac" '
-                                          'ac:name="requirement-property" ac:schema-version="1">'
-                                          '<ac:parameter ac:name="ignore">true</ac:parameter>'
-                                          '</ac:structured-macro>Код'}, inplace=True)
-
-                codes_column_name = '<ac:structured-macro ac:macro-id="53b5d6fb-9774-4048-bea8-98a3e2889eac" ' \
-                                    'ac:name="requirement-property" ac:schema-version="1">' \
-                                    '<ac:parameter ac:name="ignore">true</ac:parameter>' \
-                                    '</ac:structured-macro>Код'
+                codes_column_name = insert_col("Коды", "first", df)
             else:
                 # Пропускаем таблицы без столбцов "Код" и "Атрибут"
                 continue
@@ -128,26 +139,11 @@ def add_macros_to_tables_intg(obj: DocumentModel.DocumentModel):
         # Проверяем наличие столбца "Упоминания"
         mentions_column_name = next((col for col in df.columns if "Упоминания" in str(col)), None)
         if mentions_column_name is None:
-            df.insert(len(df.columns), "Упоминания", "")  # Вставляем столбец на последнюю позицию
-
-            # Обновляем заголовок столбца "Упоминания" на требуемую HTML-конструкцию
-            df.rename(columns={"Упоминания": '<ac:structured-macro ac:macro-id="53b5d6fb-9774-4048-bea8-98a3e2889eac" '
-                                      'ac:name="requirement-property" ac:schema-version="1">'
-                                      '<ac:parameter ac:name="ignore">true</ac:parameter>'
-                                      '</ac:structured-macro>Упоминания'}, inplace=True)
-
-            mentions_column_name = '<ac:structured-macro ac:macro-id="53b5d6fb-9774-4048-bea8-98a3e2889eac" ' \
-                                'ac:name="requirement-property" ac:schema-version="1">' \
-                                '<ac:parameter ac:name="ignore">true</ac:parameter>' \
-                                '</ac:structured-macro>Упоминания'
+            mentions_column_name = insert_col("Упоминания", "last", df)
 
         # Приведение типа столбцов, куда добавляются макросы, к строковому
         df[codes_column_name] = df[codes_column_name].astype(str)
         df[mentions_column_name] = df[mentions_column_name].astype(str)
-
-        # Функция для проверки наличия макроса
-        def contains_macro(cell_value):
-            return "_MACRO_PLACEHOLDER_" in cell_value
 
         # Обрабатываем строки таблицы
         for index, row in df.iterrows():
