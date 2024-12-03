@@ -1,6 +1,7 @@
 from atlassian import Confluence
 import keyring
 
+# Как не продолбать пароли в Python скриптах: https://habr.com/ru/articles/435652/
 username = 'ISemkin'
 password = keyring.get_password("keyring_cred", username)
 
