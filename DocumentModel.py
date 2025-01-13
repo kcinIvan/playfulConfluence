@@ -153,5 +153,5 @@ class DocumentModel:
         confluence.update_page(self.id, self.title, updated_html_content, parent_id=None, type='page',
                                representation='storage',
                                minor_edit=False, full_width=False)
-        self.__init__(self.id, self.keyDoc)
+        self.__init__(self.id)
         print(f'Page {self.title} has been updated')
